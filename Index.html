@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Schmerzprotokoll</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --accent: #4a8fba;
+      --accent-soft: #e1f0fa;
+      --text: #222;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 800px;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 12px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    input[type="datetime-local"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 6px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .row > div {
+      flex: 1;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      background: var(--accent-soft);
+      margin: 4px 4px 0 0;
+      border: 1px solid transparent;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .badge.selected {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px 16px;
+      font-size: 1.1rem;
+      border-radius: 999px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .entries-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .entry {
+      border-radius: 12px;
+      border: 1px solid #e0e0e0;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: #fff;
+      font-size: 0.9rem;
+    }
+
+    .entry-main {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+
+    .entry-date {
+      font-weight: 600;
+    }
+
+    .entry-pain {
+      font-weight: 700;
+    }
+
+    .entry-tags {
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      margin: 2px 4px 0 0;
+    }
+
+    /* Körperatlas */
+    .body-atlas-wrapper {
+      margin-top: 8px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .body-atlas {
+      flex: 1 1 180px;
+      max-width: 260px;
+      background: #f9fafb;
+      border-radius: 16px;
+      padding: 10px;
+      border: 1px solid #e0e0e0;
+    }
+
+    .body-atlas svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .body-legend {
+      flex: 1 1 140px;
+      font-size: 0.85rem;
+    }
+
+    .body-legend p {
+      margin: 0 0 4px;
+    }
+
+    .body-dot {
+      fill: var(--accent-soft);
+      stroke: var(--accent);
+      stroke-width: 1.5;
+      cursor: pointer;
+    }
+
+    .body-dot.selected {
+      fill: var(--accent);
+    }
+
+    .small-label {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 4px;
+    }
+
+    .danger-link {
+      font-size: 0.8rem;
+      color: #b00020;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    @media (pointer: coarse) {
+      /* Größere Klickflächen für Touch */
+      .badge {
+        padding: 8px 14px;
+      }
+      button {
+        padding: 14px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Mein Schmerzprotokoll</h1>
+
+    <!-- Formular -->
+    <div class="card" id="formCard">
+      <label for="datetime">Datum & Uhrzeit</label>
+      <input type="datetime-local" id="datetime">
+
+      <label for="painRange">Schmerzstärke (0–10)</label>
+      <div class="slider-row">
+        <input type="range" id="painRange" min="0" max="10" step="1" value="5">
+        <span id="painValue">5</span>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="sleep">Schlaf (Stunden)</label>
+          <input type="number" id="sleep" min="0" max="24" step="0.5">
+        </div>
+        <div>
+          <label for="fatigue">Erschöpfung (0–10)</label>
+          <input type="number" id="fatigue" min="0" max="10" step="1">
+        </div>
+      </div>
+
+      <!-- Körperatlas -->
+      <label>Körperatlas (tippe auf die Bereiche)</label>
+      <div class="body-atlas-wrapper">
+        <div class="body-atlas">
+          <!-- sehr einfache stilisierte Figur -->
+          <svg viewBox="0 0 120 260">
+            <!-- Körperform grob -->
+            <rect x="52" y="40" width="16" height="50" rx="8" fill="#e3e6f0"/>
+            <rect x="48" y="90" width="24" height="60" rx="10" fill="#e3e6f0"/>
+            <rect x="40" y="150" width="16" height="50" rx="8" fill="#e3e6f0"/>
+            <rect x="64" y="150" width="16" height="50" rx="8" fill="#e3e6f0"/>
+            <circle cx="60" cy="20" r="14" fill="#e3e6f0"/>
+            <!-- Punkte für Bereiche -->
+            <!-- Kopf -->
+            <circle class="body-dot" data-area="Kopf" cx="60" cy="20" r="6" />
+            <!-- Nacken/Schultern -->
+            <circle class="body-dot" data-area="Nacken/Schultern" cx="60" cy="52" r="6" />
+            <!-- Rücken -->
+            <circle class="body-dot" data-area="Rücken" cx="60" cy="82" r="6" />
+            <!-- Brust/Bauch -->
+            <circle class="body-dot" data-area="Brust/Bauch" cx="60" cy="110" r="6" />
+            <!-- Arme -->
+            <circle class="body-dot" data-area="Arme" cx="40" cy="90" r="6" />
+            <circle class="body-dot" data-area="Arme" cx="80" cy="90" r="6" />
+            <!-- Beine -->
+            <circle class="body-dot" data-area="Beine" cx="50" cy="180" r="6" />
+            <circle class="body-dot" data-area="Beine" cx="70" cy="180" r="6" />
+          </svg>
+        </div>
+        <div class="body-legend">
+          <p><strong>Ausgewählte Bereiche:</strong></p>
+          <div id="selectedAreas" class="small-label">Noch nichts ausgewählt</div>
+          <p class="small-label">Du kannst mehrere Bereiche antippen.</p>
+        </div>
+      </div>
+
+      <!-- Symptome als Badges -->
+      <label>Symptome (antippen zum Auswählen)</label>
+      <div id="symptomBadges">
+        <!-- werden per JS gesetzt -->
+      </div>
+      <div class="small-label">Weitere Symptome:</div>
+      <textarea id="symptomsFree" placeholder="z.B. Kopfdruck, Lichtempfindlichkeit, Brennen in den Muskeln"></textarea>
+
+      <!-- Notizen -->
+      <label>Notizen</label>
+      <textarea id="notes" placeholder="z.B. Auslöser, Aktivitäten, Medikamente"></textarea>
+
+      <button id="saveBtn">Eintrag speichern</button>
+    </div>
+
+    <!-- Einträge -->
+    <div class="card">
+      <div class="entries-header">
+        <h2 style="margin:0;font-size:1.1rem;">Letzte Einträge</h2>
+        <span class="danger-link" id="clearAll">Alles löschen</span>
+      </div>
+      <div id="entriesList"></div>
+      <div class="small-label">Daten werden nur im Browser auf diesem Gerät gespeichert.</div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Grundeinstellungen ----------
+    const STORAGE_KEY = 'painEntries_v1';
+
+    const defaultSymptoms = [
+      'Kopfschmerzen',
+      'Kopfdruck',
+      'Schwindel',
+      'Brain Fog',
+      'Muskelschmerzen',
+      'Gelenkschmerzen',
+      'Druckempfindlichkeit',
+      'Übelkeit',
+      'Lichtempfindlich',
+      'Geräuschempfindlich',
+      'Herzrasen',
+      'Atemnot',
+      'Gänsehaut/Schüttelfrost',
+      'Brennen in Muskeln',
+      'Kribbeln/Taubheit'
+    ];
+
+    const painRange = document.getElementById('painRange');
+    const painValue = document.getElementById('painValue');
+    const saveBtn = document.getElementById('saveBtn');
+    const entriesList = document.getElementById('entriesList');
+    const clearAll = document.getElementById('clearAll');
+    const selectedAreasEl = document.getElementById('selectedAreas');
+    const symptomBadgesContainer = document.getElementById('symptomBadges');
+
+    let selectedAreas = new Set();
+    let selectedSymptoms = new Set();
+
+    // ---------- UI aufbauen ----------
+
+    // Live-Anzeige der Schmerzstärke
+    painRange.addEventListener('input', () => {
+      painValue.textContent = painRange.value;
+    });
+
+    // Symptom-Badges erzeugen
+    function buildSymptomBadges() {
+      symptomBadgesContainer.innerHTML = '';
+      defaultSymptoms.forEach(sym => {
+        const span = document.createElement('span');
+        span.className = 'badge';
+        span.textContent = sym;
+        span.dataset.symptom = sym;
+        span.addEventListener('click', () => {
+          if (selectedSymptoms.has(sym)) {
+            selectedSymptoms.delete(sym);
+            span.classList.remove('selected');
+          } else {
+            selectedSymptoms.add(sym);
+            span.classList.add('selected');
+          }
+        });
+        symptomBadgesContainer.appendChild(span);
+      });
+    }
+
+    // Körperatlas Klicks
+    function setupBodyAtlas() {
+      const dots = document.querySelectorAll('.body-dot');
+      dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+          const area = dot.dataset.area;
+          if (dot.classList.contains('selected')) {
+            dot.classList.remove('selected');
+            selectedAreas.delete(area);
+          } else {
+            dot.classList.add('selected');
+            selectedAreas.add(area);
+          }
+          updateSelectedAreasLabel();
+        });
+      });
+    }
+
+    function updateSelectedAreasLabel() {
+      if (selectedAreas.size === 0) {
+        selectedAreasEl.textContent = 'Noch nichts ausgewählt';
+      } else {
+        selectedAreasEl.textContent = Array.from(selectedAreas).join(', ');
+      }
+    }
+
+    // ---------- Speicherfunktionen ----------
+
+    function loadEntries() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        return JSON.parse(raw);
+      } catch (e) {
+        console.error('Fehler beim Laden', e);
+        return [];
+      }
+    }
+
+    function saveEntries(entries) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    }
+
+    function addEntry(entry) {
+      const entries = loadEntries();
+      entries.push(entry);
+      saveEntries(entries);
+      renderEntries();
+    }
+
+    // ---------- Rendern der Liste ----------
+
+    function renderEntries() {
+      const entries = loadEntries();
+      entriesList.innerHTML = '';
+      if (!entries.length) {
+        entriesList.innerHTML = '<div class="small-label">Noch keine Einträge gespeichert.</div>';
+        return;
+      }
+
+      // Neueste zuerst anzeigen
+      entries.slice().reverse().forEach(e => {
+        const div = document.createElement('div');
+        div.className = 'entry';
+
+        const main = document.createElement('div');
+        main.className = 'entry-main';
+
+        const left = document.createElement('div');
+        left.innerHTML = `
+          <div class="entry-date">${escapeHtml(e.datetimeDisplay || e.datetime || '')}</div>
+          <div class="small-label">Schlaf: ${e.sleep || '-'} h, Erschöpfung: ${e.fatigue ?? '-'} /10</div>
+        `;
+
+        const right = document.createElement('div');
+        right.innerHTML = `<div class="entry-pain">Schmerz: ${e.pain}/10</div>`;
+
+        main.appendChild(left);
+        main.appendChild(right);
+        div.appendChild(main);
+
+        const tags = document.createElement('div');
+        tags.className = 'entry-tags';
+
+        if (e.areas && e.areas.length) {
+          e.areas.forEach(a => {
+            const span = document.createElement('span');
+            span.className = 'pill';
+            span.textContent = a;
+            tags.appendChild(span);
+          });
+        }
+
+        if (e.symptoms && e.symptoms.length) {
+          e.symptoms.forEach(s => {
+            const span = document.createElement('span');
+            span.className = 'pill';
+            span.textContent = s;
+            tags.appendChild(span);
+          });
+        }
+
+        if (e.symptomsFree) {
+          const span = document.createElement('span');
+          span.className = 'pill';
+          span.textContent = e.symptomsFree;
+          tags.appendChild(span);
+        }
+
+        if (tags.children.length) {
+          div.appendChild(tags);
+        }
+
+        if (e.notes) {
+          const notes = document.createElement('div');
+          notes.className = 'small-label';
+          notes.textContent = 'Notizen: ' + e.notes;
+          div.appendChild(notes);
+        }
+
+        entriesList.appendChild(div);
+      });
+    }
+
+    // ---------- Helfer ----------
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function formatDateTimeForDisplay(value) {
+      if (!value) return '';
+      // value ist z.B. "2025-11-28T12:30"
+      const [datePart, timePart] = value.split('T');
+      if (!datePart || !timePart) return value;
+      const [y, m, d] = datePart.split('-');
+      const [hh, mm] = timePart.split(':');
+      return `${d}.${m}.${y} ${hh}:${mm}`;
+    }
+
+    // ---------- Events ----------
+
+    saveBtn.addEventListener('click', () => {
+      const datetime = document.getElementById('datetime').value;
+      const sleep = document.getElementById('sleep').value;
+      const fatigue = document.getElementById('fatigue').value;
+      const symptomsFree = document.getElementById('symptomsFree').value.trim();
+      const notes = document.getElementById('notes').value.trim();
+
+      const entry = {
+        datetime,
+        datetimeDisplay: formatDateTimeForDisplay(datetime),
+        pain: Number(painRange.value),
+        sleep: sleep ? Number(sleep) : null,
+        fatigue: fatigue !== '' ? Number(fatigue) : null,
+        areas: Array.from(selectedAreas),
+        symptoms: Array.from(selectedSymptoms),
+        symptomsFree,
+        notes
+      };
+
+      addEntry(entry);
+
+      // Einfaches Zurücksetzen (nicht alles, damit es leicht bleibt)
+      // Schmerz, Freitext & Notizen zurücksetzen:
+      painRange.value = 5;
+      painValue.textContent = '5';
+      document.getElementById('symptomsFree').value = '';
+      document.getElementById('notes').value = '';
+    });
+
+    clearAll.addEventListener('click', () => {
+      if (confirm('Wirklich alle Einträge löschen?')) {
+        localStorage.removeItem(STORAGE_KEY);
+        renderEntries();
+      }
+    });
+
+    // ---------- Initial ----------
+
+    // Datum auf jetzt setzen, wenn leer
+    (function initDatetime() {
+      const dt = document.getElementById('datetime');
+      if (!dt.value) {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const local = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        dt.value = local;
+      }
+    })();
+
+    buildSymptomBadges();
+    setupBodyAtlas();
+    renderEntries();
+  </script>
+</body>
+</html>
